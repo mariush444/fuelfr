@@ -1,0 +1,16 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()        // <--- THIS IS THE MISSING LINE
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()        // <--- AND THIS ONE
+        mavenCentral()
+    }
+}
+rootProject.name = "FuelApp"
+include ':app'

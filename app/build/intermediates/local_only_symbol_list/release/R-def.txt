@@ -1,0 +1,8 @@
+R_DEF: Internal format may change without notice
+local
+color m444_fuel_background
+mipmap m444_fuel
+mipmap m444_fuel_foreground
+string app_name
+style Theme.FuelFR
+xml file_paths

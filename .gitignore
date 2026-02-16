@@ -1,0 +1,6 @@
+*.iml
+.gradle
+./app/build
+local.properties
+confs
+0_info

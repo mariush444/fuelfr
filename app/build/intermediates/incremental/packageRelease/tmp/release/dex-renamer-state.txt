@@ -1,0 +1,4 @@
+#Mon Feb 16 21:10:19 CET 2026
+base.0=/media/icecat/Live/ROBO/Downloads/android/apk-tool/website-to-apk/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

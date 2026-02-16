@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="m444_fuel_background">#ff9c2a</color>
+    <string name="app_name">Fuel🇫🇷GPX</string>
+    <style name="Theme.FuelFR" parent="Theme.AppCompat.Light.NoActionBar">
+        
+    </style>
+</resources>
