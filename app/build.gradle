@@ -1,0 +1,84 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android' version '1.8.22'
+}
+
+android {
+	namespace "com.m444.fuelFR"  // <-- ADD THIS LINE
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.m444.fuelFR"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+        // For Java 8+ features
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            if (variant.buildType.name == "debug") {
+                outputFileName = "m444_fuelFR-debug.apk"
+            } else if (variant.buildType.name == "release") {
+                outputFileName = "m444_fuelFR-release.apk"
+            }
+        }
+    }
+
+	if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
+		signingConfigs {
+			release {
+				storeFile file(MY_RELEASE_KEYSTORE)
+				storePassword project.MY_KEYSTORE_PASSWORD
+				keyAlias project.MY_KEY_ALIAS
+				keyPassword project.MY_KEY_PASSWORD
+			}
+		}
+	}
+    
+
+    buildTypes {
+		if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
+			signingConfig signingConfigs.release
+		}
+            minifyEnabled true   // Optional: Proguard for minification
+            shrinkResources true // Optional: Remove unused resources
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            debuggable true
+        }
+    }
+
+    // Avoid duplicate Kotlin stdlib
+    configurations.all {
+        resolutionStrategy {
+            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Optional JSZip for WebView HTML
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    // WebView (already part of Android SDK)
+}

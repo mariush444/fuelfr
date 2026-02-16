@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- paths>
+    <external-files-path name="my_files" path="Download" />
+</paths -->
+
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Share files in the "gpx" folder -->
+    <external-files-path  name="gpx"  path="gpx/" />
+</paths>
