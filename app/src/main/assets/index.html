@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuel Price FR GPX Generator</title>
+<!-- script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script -->
+<style>
+body { font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
+.container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; padding-bottom: 60px;
+	position: relative; /* For the close button */}
+h1 { text-align: center; color: #333; font-size: 1.5em; margin-bottom: 20px; margin-top: 0;padding-right: 30px; /* FIX: Prevents text from sliding under the X button */}
+.form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+label { margin-bottom: 5px; font-weight: bold; }
+select, input[type="checkbox"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+button { background: #007bff; color: #fff; border: none; padding: 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; }
+/* button:disabled { background: #ccc; cursor: not-allowed; } */
+
+button {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Close Button Styles */
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 20px;
+    z-index: 20;
+}
+.close-btn:hover {
+    color: #333;
+}
+
+/* Status Bar Styles */
+#status { 
+    margin-top: 10px; 
+    padding: 10px; 
+    border-radius: 4px; 
+    text-align: center; 
+    font-weight: bold; 
+    display: none; 
+}
+.status-ok { background: #d4edda; color: #155724; }
+.status-err { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status-process { background: #fff3cd; color: #856404; }
+
+/* FIX: Use padding-bottom instead of margin. 
+   This reserves space inside the layout for the sticky legend to sit over. 
+#readyDiv {
+    padding-bottom: 120px; 
+}
+*/
+#legend-container {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 14px;
+    display:none;
+    background: #fafafa;
+    /*position: sticky;
+    bottom: 80px;
+    z-index: 10; 
+    max-height: 250px;
+    overflow-y: auto; */
+}
+.legend-title {
+    font-weight: bold;
+    margin-bottom: 12px;
+    font-size: 15px;
+    text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container">
+	<!-- CLOSE BUTTON -->
+    <div class="close-btn" onclick="closeApp()">☒</div>
+    <h2>⛽ 🇨🇵 - colored prices</h2>
+
+    <div class="form-group">
+        <label for="fuelType">Select Fuel Type:</label>
+        <select id="fuelType">
+            <option value="1">Gazole</option>
+            <option value="5">E10</option>
+            <option value="2">SP95</option>
+            <option value="6">SP98</option>
+            <option value="3">E85</option>
+            <option value="4">GPLc</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label style="display:flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="doBlack" style="width:20px;height:20px;margin-right:10px;">
+            Include stations without this fuel
+        </label>
+    </div>
+
+    <!-- COMMON STATUS DIV -->
+    <div id="status"></div>
+
+    <div id="idleDiv">
+        <button onclick="startDownload()">Download</button>
+    </div>
+
+    <div id="processingDiv" style="display:none;"></div>
+
+    <div id="readyDiv" style="display:none;">
+        <button onclick="transferGPX()">Transfer to OsmAnd</button>
+    </div>
+
+    <div id="legend-container">
+        <div class="legend-title">Price Color Legend:</div>
+        <div id="legend-rows"></div>
+    </div>
+</div>
+
+<script>
+let lastGeneratedFileName = null;
+
+const fuelTAB = {
+    1: "Gazole", 2: "SP95", 3: "E85",
+    4: "GPLc", 5: "E10", 6: "SP98"
+};
+
+const serviceEmojis = {
+    "Bar": "🍴",
+    "Restauration sur place": "🍴",
+    "Boutique alimentaire": "🛒",
+    "DAB (Distributeur automatique de billets)": "🏧",
+    "Douches": "🚿",
+    "Espace bébé": "🚼",
+    "Relais colis": "🎁",
+    "Services réparation / entretien": "🛠️",
+    "Station de gonflage": "🔧",
+    "Toilettes publiques": "🚻",
+    "Wifi": "📶"
+};
+
+function showView(view) {
+    document.getElementById("idleDiv").style.display = "none";
+    document.getElementById("processingDiv").style.display = "none";
+    document.getElementById("readyDiv").style.display = "none";
+    document.getElementById(view + "Div").style.display = "block";
+}
+
+function setStatus(text, type) {
+    const status = document.getElementById("status");
+    status.innerText = text;
+    status.className = "";
+    if (type) status.className = type;
+    status.style.display = "block";
+}
+
+function clearStatus() {
+    const status = document.getElementById("status");
+    status.style.display = "none";
+    status.innerText = "";
+}
+
+function closeApp() {
+    // Calls the Android method to close the WebView/Activity
+    if (typeof Android !== 'undefined' && typeof Android.close === 'function') {
+        Android.close();
+    } else {
+        // Fallback for testing in browser
+        console.log("Android.close() called");
+        window.close(); 
+    }
+}
+
+async function startDownload() {
+    clearStatus(); 
+    document.getElementById("legend-container").style.display = "none";
+    
+    setStatus("Loading data...", "status-process");
+    showView("processing"); 
+
+    await new Promise(r => setTimeout(r, 50)); 
+
+    try {
+        const fuel = document.getElementById("fuelType").value;
+        const DOblack = document.getElementById("doBlack").checked;
+
+        /* setStatus("Calculating ...", "status-process");
+		await new Promise(r => setTimeout(r, 0));  */
+        const xmlContent = Android.getFuelXML();
+        if (!xmlContent) throw new Error("Internet problem");
+
+        const xmlDoc = new DOMParser().parseFromString(xmlContent, "text/xml");
+        const stations = xmlDoc.getElementsByTagName("pdv");
+        if (!stations.length) throw new Error("No stations found.");
+
+        let Pmin = 1000, Pmax = 0, date = "";
+
+        for (let s of stations) {
+            for (let p of s.getElementsByTagName("prix")) {
+                if (p.getAttribute("id") === fuel) {
+                    const val = parseFloat(p.getAttribute("valeur"));
+                    if (!isNaN(val)) {
+                        Pmin = Math.min(Pmin, val);
+                        Pmax = Math.max(Pmax, val);
+                    }
+                    const maj = p.getAttribute("maj").substring(0,10);
+                    if (maj > date) date = maj;
+                }
+            }
+        }
+
+        if (Pmax === 0 && Pmin === 1000)
+            throw new Error("No prices for selected fuel.");
+
+        const Prange = Pmax - Pmin;
+
+        const thresholds = {
+            t0_5: Pmin + Prange * 0.05,
+            t5_10: Pmin + Prange * 0.10,
+            t11_20: Pmin + Prange * 0.20,
+            t21_30: Pmin + Prange * 0.30,
+            t31_40: Pmin + Prange * 0.40,
+            t41_80: Pmin + Prange * 0.80,
+            t81_90: Pmin + Prange * 0.90
+        };
+
+        createLegend(Pmin, Pmax, thresholds, fuelTAB[fuel], DOblack);
+		
+		
+        setStatus("Generating GPX...", "status-process");
+		await new Promise(r => setTimeout(r, 20));
+        let gpx = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n`;
+        gpx += `<gpx version="1.1" creator="AI+Mariush444" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net">\n`;
+        gpx += `<metadata><name>fuel FR</name></metadata>\n`;
+
+        for (let s of stations) {
+            const lat = (parseFloat(s.getAttribute("latitude")) / 100000).toFixed(5);
+            const lon = (parseFloat(s.getAttribute("longitude")) / 100000).toFixed(5);
+
+            let name = "no " + fuelTAB[fuel];
+            let desc = "";
+            let price = 0;
+            let color = "000001";
+
+            for (let p of s.getElementsByTagName("prix")) {
+                if (p.getAttribute("id") === fuel) {
+                    name = `${p.getAttribute("nom")} ${p.getAttribute("valeur")} ${p.getAttribute("maj").substring(2,10)}`;
+                    price = parseFloat(p.getAttribute("valeur"));
+                }
+                desc += `${p.getAttribute("nom")} ${p.getAttribute("valeur")}€ ${p.getAttribute("maj").substring(2,10)}&lt;br&gt;`;
+            }
+
+            const services = s.getElementsByTagName("service");
+            for (let k = 0; k < services.length; k++) {
+                const sText = services[k].textContent.trim();
+                if (serviceEmojis[sText]) {
+                    name += " " + serviceEmojis[sText];
+                }
+            }
+
+            if (price > 0 && price <= thresholds.t0_5) color = "10c0f0"; 
+            else if (price > thresholds.t0_5 && price <= thresholds.t5_10) color = "00842b"; 
+            else if (price > thresholds.t5_10 && price <= thresholds.t11_20) color = "88e030"; 
+            else if (price > thresholds.t11_20 && price <= thresholds.t21_30) color = "eecc22"; 
+            else if (price > thresholds.t21_30 && price <= thresholds.t31_40) color = "ff8500"; 
+            else if (price > thresholds.t31_40 && price <= thresholds.t41_80) color = "d00d0d"; 
+            else if (price > thresholds.t41_80 && price <= thresholds.t81_90) color = "a71de1"; 
+            else if (price > thresholds.t81_90) color = "1010a0"; 
+            else color = "000001"; 
+
+            if (DOblack || color !== "000001") {
+                gpx += `<wpt lat="${lat}" lon="${lon}">`;
+                gpx += `<name>${name}</name>`;
+                gpx += `<desc>${desc}</desc>`;
+                if (color === "000001") gpx += `\t<type>Absence</type>\n`;
+                gpx += `<extensions>`;
+                gpx += `<osmand:color>#${color}</osmand:color>`;
+                gpx += `<osmand:icon>fuel</osmand:icon>`;
+                gpx += `<osmand:background>circle</osmand:background>`;
+                gpx += `</extensions></wpt>\n`;
+            }
+        }
+
+        gpx += `</gpx>`;
+
+        const fileName = `FR-${fuelTAB[fuel]}-${DOblack ? "full" : "only"}-${date.replace(/-/g,'').substring(2)}.gpx`;
+
+        Android.saveFile(fileName, gpx);
+        lastGeneratedFileName = fileName;
+
+        setStatus("GPX ready.", "status-ok");
+        showView("ready");
+
+    } catch (e) {
+        setStatus("Error: " + e.message, "status-err");
+        showView("idle"); 
+    }
+}
+
+function transferGPX() {
+    if (!lastGeneratedFileName) return;
+    Android.openLastFile(lastGeneratedFileName);
+    document.getElementById("legend-container").style.display = "none";
+    clearStatus();
+    showView("idle");
+}
+
+function addRow(range, color, label) {
+    const rows = document.getElementById('legend-rows');
+    const div = document.createElement('div');
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    /* div.style.padding = "4px 8px";
+    div.style.marginBottom = "2px"; */
+    div.style.padding = "6px 10px";
+	div.style.marginBottom = "6px";
+	div.style.fontSize = "14px";
+	div.style.fontWeight = "500";
+    div.style.borderRadius = "4px";
+    div.style.backgroundColor = "#" + color;
+    div.style.color = (["10c0f0", "88e030", "eecc22"].includes(color)) ? "black" : "white";
+    div.innerHTML = `<span>${range}</span> <span>${label}</span>`;
+    rows.appendChild(div);
+}
+
+function createLegend(Pmin, Pmax, thresholds, fuelName, includeBlack) {
+    const container = document.getElementById('legend-container');
+    const rows = document.getElementById('legend-rows');
+    rows.innerHTML = "";
+
+    const legendSteps = [
+        { threshold: thresholds.t0_5, color: "10c0f0", label: "Light Blue" },
+        { threshold: thresholds.t5_10, color: "00842b", label: "Dark Green" },
+        { threshold: thresholds.t11_20, color: "88e030", label: "Bright Green" },
+        { threshold: thresholds.t21_30, color: "eecc22", label: "Yellow" },
+        { threshold: thresholds.t31_40, color: "ff8500", label: "Orange" },
+        { threshold: thresholds.t41_80, color: "d00d0d", label: "Red" },
+        { threshold: thresholds.t81_90, color: "a71de1", label: "Violet" },
+        { threshold: Pmax, color: "1010a0", label: "Navy Blue" }
+    ];
+
+    let last = Pmin;
+    for (let step of legendSteps) {
+        addRow(`${last.toFixed(3)} - ${step.threshold.toFixed(3)}€`, step.color, step.label);
+        last = step.threshold + 0.001;
+    }
+    if (includeBlack) addRow("Absence", "000001", "No " + fuelName);
+    container.style.display = "block";
+}
+</script>
+</body>
+</html>
