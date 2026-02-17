@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-	namespace "com.m444.fuelFR"  // <-- ADD THIS LINE
+    namespace "com.m444.fuelFR"
     compileSdk 34
 
     defaultConfig {
@@ -15,14 +15,14 @@ android {
         versionName "1.0"
     }
 
-        // For Java 8+ features
-        compileOptions {
-            sourceCompatibility JavaVersion.VERSION_1_8
-            targetCompatibility JavaVersion.VERSION_1_8
-        }
-        kotlinOptions {
-            jvmTarget = "1.8"
-        }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 
     applicationVariants.all { variant ->
         variant.outputs.all {
@@ -34,22 +34,22 @@ android {
         }
     }
 
-	if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
-		signingConfigs {
-			release {
-				storeFile file(MY_RELEASE_KEYSTORE)
-				storePassword project.MY_KEYSTORE_PASSWORD
-				keyAlias project.MY_KEY_ALIAS
-				keyPassword project.MY_KEY_PASSWORD
-			}
-		}
-	}
-    
+    if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
+        signingConfigs {
+            release {
+                storeFile file(MY_RELEASE_KEYSTORE)
+                storePassword project.MY_KEYSTORE_PASSWORD
+                keyAlias project.MY_KEY_ALIAS
+                keyPassword project.MY_KEY_PASSWORD
+            }
+        }
+    }
 
     buildTypes {
-		if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
-			signingConfig signingConfigs.release
-		}
+        release {
+            if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true   // Optional: Proguard for minification
             shrinkResources true // Optional: Remove unused resources
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -59,7 +59,6 @@ android {
         }
     }
 
-    // Avoid duplicate Kotlin stdlib
     configurations.all {
         resolutionStrategy {
             force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
@@ -71,14 +70,9 @@ android {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
-
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'com.google.android.material:material:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    // Optional JSZip for WebView HTML
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-
-    // WebView (already part of Android SDK)
 }
