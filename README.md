@@ -6,11 +6,9 @@
 ![Min SDK](https://img.shields.io/badge/minSdk-21-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-Fuel🇫🇷GPX is a simple Android application that downloads official open data from:
+Fuel🇫🇷GPX is an Android app that downloads official French fuel price data from **donnees.roulez-eco.fr** and generates a **GPX file** for use with **OsmAnd**. The GPX file visualizes fuel prices with **color-coded icons**, representing the price range from the cheapest to the most expensive. The app supports various fuel types, including **Gazole**, **SP95**, **SP98**, **E85**, **E10**, and **GPLc**.
 
-https://donnees.roulez-eco.fr
-
-It generates a **GPX file for OsmAnd**, where fuel prices are represented by **color-coded icons**, from cheapest to most expensive.
+This app is entirely open-source and respects user privacy. All processing is done locally, and no personal data is collected. There are no ads, tracking, or analytics. Internet access is only required to fetch fuel price data. Ideal for travelers and drivers looking to find fuel prices in France on their route.
 
 ---
 
@@ -165,7 +163,12 @@ app/build/outputs/apk/release/
 sdk.dir=/path/to/your/android/sdk
 ```
 ---
-### Izzy summarizing
-Fuel🇫🇷GPX is an Android app that downloads official French fuel price data from **donnees.roulez-eco.fr** and generates a **GPX file** for use with **OsmAnd**. The GPX file visualizes fuel prices with **color-coded icons**, representing the price range from the cheapest to the most expensive. The app supports various fuel types, including **Gazole**, **SP95**, **SP98**, **E85**, **E10**, and **GPLc**.
+## Screenshots
+![Screenshot1a](https://github.com/user-attachments/assets/be94c5ad-5c86-41c7-8c2e-b696c639cc90)
+![Screenshot2a](https://github.com/user-attachments/assets/2e4a3818-e233-4306-9211-7720b9553b46)
+![Screenshot3a](https://github.com/user-attachments/assets/e2e78b69-6405-4292-b1f7-a7c3dff173e6)
+![Screenshot4a](https://github.com/user-attachments/assets/0e19a228-fcec-451a-a152-0a40222878ed)
+![Screenshot5a](https://github.com/user-attachments/assets/e9592f23-9c8b-4bfc-be7a-f4500bacfb45)
+![Screenshot6a](https://github.com/user-attachments/assets/d15e118c-b727-4a7f-b3a9-0645f3203852)
 
-This app is entirely open-source and respects user privacy. All processing is done locally, and no personal data is collected. There are no ads, tracking, or analytics. Internet access is only required to fetch fuel price data. Ideal for travelers and drivers looking to find fuel prices in France on their route.
+
