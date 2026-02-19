@@ -6,7 +6,7 @@
 ![Min SDK](https://img.shields.io/badge/minSdk-21-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-Fuel🇫🇷GPX is an Android app that downloads official French fuel price data from **donnees.roulez-eco.fr** and generates a **GPX file** for use with **OsmAnd**. The GPX file visualizes fuel prices with **color-coded icons**, representing the price range from the cheapest to the most expensive. The app supports various fuel types, including **Gazole**, **SP95**, **SP98**, **E85**, **E10**, and **GPLc**.
+Fuel🇫🇷GPX is an **Osmand add-on** Android app that downloads official French fuel price data from **donnees.roulez-eco.fr** and generates a **GPX file** for use with **OsmAnd**. The GPX file visualizes fuel prices with **color-coded icons**, representing the price range from the cheapest to the most expensive. The app supports various fuel types, including **Gazole**, **SP95**, **SP98**, **E85**, **E10**, and **GPLc**.
 
 This app is entirely open-source and respects user privacy. All processing is done locally, and no personal data is collected. There are no ads, tracking, or analytics. Internet access is only required to fetch fuel price data. Ideal for travelers and drivers looking to find fuel prices in France on their route.
 
