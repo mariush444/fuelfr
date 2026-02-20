@@ -1,0 +1,40 @@
+# Android / Gradle
+.gradle/
+.gradle-cashe/
+*/build/
+app/build/
+*/.cxx/
+local.properties
+gradle.properties
+
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+*.hprof
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+*.swp
+tmp/
+tmp*/
+
+
+# Optional folders you mentioned
+confs/
+0_info/
+jvm/ 
+app-/
+cmdline-tools/
+build-tools/
+licenses/
+platform-tools/
+platforms/
+
+# Optional: ProGuard / shrink outputs (if you keep them)
+*/outputs/
