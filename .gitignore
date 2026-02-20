@@ -1,11 +1,13 @@
 # Android / Gradle
 .gradle/
-.gradle-cashe/
+.gradle-cache/
+build/
 */build/
 app/build/
+app/src/*/build/
 */.cxx/
 local.properties
-gradle.properties
+
 
 
 # IntelliJ / Android Studio
@@ -30,6 +32,8 @@ confs/
 0_info/
 jvm/ 
 app-/
+
+# Android SDK / generated
 cmdline-tools/
 build-tools/
 licenses/
