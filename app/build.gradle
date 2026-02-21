@@ -3,16 +3,40 @@ plugins {
     id 'org.jetbrains.kotlin.android' version '1.8.22'
 }
 
+// Load keystore properties from local.properties
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('local.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace "com.m444.fuelFR"
+    namespace "com.m444.fuel"
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.m444.fuelFR"
+        // Default applicationId is for the main flavor (if none specified)
+        // applicationId "com.m444.fuel" // Default removed, as each flavor has its own applicationId
         minSdk 21
         targetSdk 34
         versionCode 2
         versionName "1.2"
+    }
+
+    flavorDimensions "country"  // Define the flavor dimension
+
+    productFlavors {
+        fr {
+            dimension "country"
+            applicationId "com.m444.fuelFR"  // Specific applicationId for the French flavor
+            manifestPlaceholders = [appTheme:"@style/Theme.FuelFR"]
+        }
+
+        es {
+            dimension "country"
+            applicationId "com.m444.fuelES"  // Specific applicationId for the Spanish flavor
+            manifestPlaceholders = [appTheme:"@style/Theme.FuelES"]
+        }
     }
 
     compileOptions {
@@ -22,38 +46,39 @@ android {
 
     kotlinOptions {
         jvmTarget = "1.8"
+        allWarningsAsErrors = false // Show warnings without failing build
     }
 
+    // Handle output file naming dynamically for each flavor
     applicationVariants.all { variant ->
         variant.outputs.all {
-            if (variant.buildType.name == "debug") {
-                outputFileName = "m444_fuelFR-debug.apk"
-            } else if (variant.buildType.name == "release") {
-                outputFileName = "m444_fuelFR-release.apk"
-            }
+            outputFileName = "m444_fuel${variant.flavorName.toUpperCase()}-${variant.buildType.name}.apk"
         }
     }
 
-    if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
-        signingConfigs {
-            release {
-                storeFile file(MY_RELEASE_KEYSTORE)
-                storePassword project.MY_KEYSTORE_PASSWORD
-                keyAlias project.MY_KEY_ALIAS
-                keyPassword project.MY_KEY_PASSWORD
+    signingConfigs {
+        release {
+            if (keystoreProperties["MY_RELEASE_KEYSTORE"]) {
+				// println "Keystore path: ${MY_RELEASE_KEYSTORE}"  // Debugging line
+				storeFile file(keystoreProperties['MY_RELEASE_KEYSTORE'])
+				storePassword keystoreProperties['MY_KEYSTORE_PASSWORD']
+				keyAlias keystoreProperties['MY_KEY_ALIAS']
+				keyPassword keystoreProperties['MY_KEY_PASSWORD']
+            }	else {
+                // Optional: Print a warning so you know why signing might fail later
+                println "Warning: Keystore properties not found in local.properties"
             }
         }
     }
 
     buildTypes {
         release {
-            if (project.hasProperty("MY_RELEASE_KEYSTORE")) {
-                signingConfig signingConfigs.release
-            }
-            minifyEnabled true   // Optional: Proguard for minification
+            signingConfig signingConfigs.release  // Apply the signing config to the release build
+            minifyEnabled true  // Optional: Proguard for minification
             shrinkResources true // Optional: Remove unused resources
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+
         debug {
             debuggable true
         }
@@ -68,6 +93,10 @@ android {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation"  // Show deprecated API warnings
+}
+
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
     implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -76,3 +105,15 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
+/*
+task checkLocalProperties {
+    doLast {
+        def localPropertiesFile = file('local.properties')
+        if (localPropertiesFile.exists()) {
+            println "Found local.properties at: ${localPropertiesFile.absolutePath}"
+        } else {
+            println "local.properties NOT found"
+        }
+    }
+}
+*/

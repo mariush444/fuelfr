@@ -1,4 +1,4 @@
--keepclassmembers class com.m444.fuelFR.MainActivity {
+-keepclassmembers class com.m444.fuel.MainActivity {
     *;
 }
 

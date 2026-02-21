@@ -243,7 +243,7 @@ async function startDownload() {
 		await new Promise(r => setTimeout(r, 20));
         let gpx = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n`;
         gpx += `<gpx version="1.1" creator="AI+Mariush444" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net">\n`;
-        gpx += `<metadata><name>fuel FR</name></metadata>\n`;
+        gpx += `<metadata><name>fuel FR</name><desc>https://mariush444.github.io/Osmand-tools/</desc><author><name>AI+m444</name></author></metadata>\n`;
 
         for (let s of stations) {
             const lat = (parseFloat(s.getAttribute("latitude")) / 100000).toFixed(5);

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuel Price ES GPX Generator</title>
+<style>
+body { font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
+.container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; padding-bottom: 60px; position: relative; }
+h1 { text-align: center; color: #333; font-size: 1.5em; margin-bottom: 20px; margin-top: 0; padding-right: 30px; }
+.form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+label { margin-bottom: 5px; font-weight: bold; }
+select, input[type="checkbox"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+button { background: #007bff; color: #fff; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 12px; font-size: 16px; font-weight: 600; }
+.close-btn { position: absolute; top: 15px; right: 15px; font-size: 20px; font-weight: bold; color: #aaa; cursor: pointer; z-index: 20; }
+.close-btn:hover { color: #333; }
+#status { margin-top: 10px; padding: 10px; border-radius: 4px; text-align: center; font-weight: bold; display: none; }
+.status-ok { background: #d4edda; color: #155724; }
+.status-err { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.status-process { background: #fff3cd; color: #856404; }
+#legend-container { margin-top: 20px; border: 1px solid #ddd; border-radius: 10px; padding: 14px; display:none; background: #fafafa; }
+.legend-title { font-weight: bold; margin-bottom: 12px; font-size: 15px; text-align: center; }
+.legend-row { display: flex; justify-content: space-between; padding: 6px 10px; margin-bottom: 6px; font-size: 14px; font-weight: 500; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="close-btn" onclick="closeApp()">☒</div>
+    <h2>⛽ 🇪🇸 - colored prices</h2>
+
+    <div class="form-group">
+        <label for="fuelType">Select Fuel Type:</label>
+        <select id="fuelType">
+            <!-- Options populated by JS -->
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label style="display:flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="doBlack" style="width:20px;height:20px;margin-right:10px;">
+            Include stations without this fuel
+        </label>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="idleDiv">
+        <button onclick="startDownload()">Download</button>
+    </div>
+
+    <div id="processingDiv" style="display:none;"></div>
+
+    <div id="readyDiv" style="display:none;">
+        <button onclick="transferGPX()">Transfer to OsmAnd</button>
+    </div>
+
+    <div id="legend-container">
+        <div class="legend-title">Price Color Legend:</div>
+        <div id="legend-rows"></div>
+    </div>
+</div>
+
+<script>
+let lastGeneratedFileName = null;
+
+const fuelTAB = {
+    1: 'Adblue',
+    2: 'Biodiesel',
+    3: 'Bioetanol',
+    4: 'Biogas Natural Comprimido',
+    5: 'Biogas Natural Licuado',
+    6: 'Diésel Renovable',
+    7: 'Gas Natural Comprimido',
+    8: 'Gas Natural Licuado',
+    9: 'Gases licuados del petróleo',
+    10: 'Gasoleo A',
+    11: 'Gasoleo B',
+    12: 'Gasoleo Premium',
+    13: 'Gasolina 95 E10',
+    14: 'Gasolina 95 E25',
+    15: 'Gasolina 95 E5',
+    16: 'Gasolina 95 E5 Premium',
+    17: 'Gasolina 95 E85',
+    18: 'Gasolina 98 E10',
+    19: 'Gasolina 98 E5',
+    20: 'Gasolina Renovable',
+    21: 'Hidrogeno'
+};
+
+const selectEl = document.getElementById('fuelType');
+for (const [key, value] of Object.entries(fuelTAB)) {
+    const option = document.createElement('option');
+    option.value = key;
+    option.text = `${key}: ${value}`;
+    selectEl.appendChild(option);
+}
+selectEl.value = "12";
+
+function showView(view) {
+    document.getElementById("idleDiv").style.display = "none";
+    document.getElementById("processingDiv").style.display = "none";
+    document.getElementById("readyDiv").style.display = "none";
+    document.getElementById(view + "Div").style.display = "block";
+}
+
+function setStatus(text, type) {
+    const status = document.getElementById("status");
+    status.innerText = text;
+    status.className = "";
+    if (type) status.className = "status-" + type;
+    status.style.display = "block";
+}
+
+function clearStatus() {
+    const status = document.getElementById("status");
+    status.style.display = "none";
+    status.innerText = "";
+}
+
+function closeApp() {
+    if (typeof Android !== 'undefined' && typeof Android.close === 'function') {
+        Android.close();
+    } else {
+        console.log("Android.close() called");
+        window.close();
+    }
+}
+
+function parsePrice(val) {
+    if (!val || val.trim() === "") return 0;
+    return parseFloat(val.replace(",", "."));
+}
+
+function round3(num) {
+    return Math.round(num * 1000) / 1000;
+}
+
+async function startDownload() {
+    clearStatus();
+    document.getElementById("legend-container").style.display = "none";
+    // FIX: Use short type "process" instead of "status-process"
+    setStatus("Loading data...", "process");
+    showView("processing");
+    await new Promise(r => setTimeout(r, 50));
+
+    try {
+        const fuelId = document.getElementById("fuelType").value;
+        const DOblack = document.getElementById("doBlack").checked;
+        const chosenFuelName = fuelTAB[fuelId];
+        const targetKey = "Precio " + chosenFuelName;
+
+        const jsonString = Android.getFuelJSON();
+        if (!jsonString) throw new Error("Internet problem or Cache error");
+
+        const data = JSON.parse(jsonString);
+        const stations = data["ListaEESSPrecio"];
+        if (!stations) throw new Error("JSON format error");
+
+        let prices = [];
+        let dataDate = data["Fecha"] || "unknown";
+
+        for (let i = 0; i < stations.length; i++) {
+            const pStr = stations[i][targetKey];
+            const p = parsePrice(pStr);
+            if (p > 0) prices.push(p);
+        }
+
+        if (prices.length === 0) throw new Error("No prices found for " + chosenFuelName);
+
+        const PriceMin = Math.min(...prices);
+        const PriceMax = Math.max(...prices);
+        const Prange = round3(PriceMax - PriceMin);
+
+        const P0_5   = round3(PriceMin + Prange * 0.05);
+        const P5_10  = round3(PriceMin + Prange * 0.1);
+        const P11_20 = round3(PriceMin + Prange * 0.2);
+        const P21_30 = round3(PriceMin + Prange * 0.3);
+        const P31_40 = round3(PriceMin + Prange * 0.4);
+        const P41_80 = round3(PriceMin + Prange * 0.8);
+        const P81_90 = round3(PriceMin + Prange * 0.9);
+
+        createLegend(PriceMin, P0_5, P5_10, P11_20, P21_30, P31_40, P41_80, P81_90, PriceMax, chosenFuelName, DOblack);
+
+        // FIX: Use short type "process"
+        setStatus("Generating GPX...", "process");
+        await new Promise(r => setTimeout(r, 20));
+
+        let gpx = `<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n`;
+        gpx += `<gpx version="1.1" creator="AI+Mariush444" xmlns="http://www.topografix.com/GPX/1/1" xmlns:osmand="https://osmand.net">\n`;
+        gpx += `<metadata><name>fuel ES</name><desc>https://mariush444.github.io/Osmand-tools/</desc><author><name>AI+m444</name></author></metadata>\n`;
+
+        for (let i = 0; i < stations.length; i++) {
+            const s = stations[i];
+            const lat = (s["Latitud"] || "0").replace(",", ".");
+            const lon = (s["Longitud (WGS84)"] || "0").replace(",", ".");
+            
+            const price_str = s[targetKey] || "";
+            const price_val = parsePrice(price_str);
+
+            let current_absence = true;
+            if (price_val > 0) current_absence = false;
+
+            if (!DOblack && current_absence) continue;
+
+            let color = "000001";
+            if (!current_absence) {
+                if (price_val > 0 && price_val <= P0_5) color = "10c0f0";
+                else if (price_val > P0_5 && price_val <= P5_10) color = "00842b";
+                else if (price_val > P5_10 && price_val <= P11_20) color = "88e030";
+                else if (price_val > P11_20 && price_val <= P21_30) color = "eecc22";
+                else if (price_val > P21_30 && price_val <= P31_40) color = "ff8500";
+                else if (price_val > P31_40 && price_val <= P41_80) color = "d00d0d";
+                else if (price_val > P41_80 && price_val <= P81_90) color = "a71de1";
+                else if (price_val > P81_90) color = "1010a0";
+            }
+
+            let desc_items = [];
+            for (const [fid, fname] of Object.entries(fuelTAB)) {
+                if (fid == fuelId) continue;
+                const key = `Precio ${fname}`;
+                const val_str = s[key] || "";
+                const p_other = parsePrice(val_str);
+                if (p_other > 0) desc_items.push(`${fname}: ${p_other}`);
+            }
+            const desc_text = desc_items.join("&lt;br&gt;");
+
+            let name_text = "";
+            if (current_absence) {
+                name_text = `no ${chosenFuelName}`;
+            } else {
+                name_text = `${chosenFuelName} ${price_val}`;
+            }
+
+            gpx += `<wpt lat="${lat}" lon="${lon}">`;
+            gpx += `<name>${name_text}</name>`;
+            gpx += `<desc>${desc_text}</desc>`;
+            if (current_absence) gpx += `<type>Absence</type>`;
+            gpx += `<extensions>`;
+            gpx += `<osmand:color>#${color}</osmand:color>`;
+            gpx += `<osmand:icon>fuel</osmand:icon>`;
+            gpx += `<osmand:background>circle</osmand:background>`;
+            gpx += `</extensions></wpt>\n`;
+        }
+
+        gpx += `</gpx>`;
+
+        const suffix = DOblack ? "full" : "only";
+        const cleanName = chosenFuelName.replace(" ", "_");
+        // FIX: Correctly parse date format "26/02/2026 19:57:19" -> "260226"
+        let datePart = "000000";
+        if (dataDate && dataDate.length > 9) {
+            // Expected format: "DD/MM/YYYY HH:mm:ss"
+            // We split by space first to get date part, then by slash
+            const rawDate = dataDate.split(' ')[0]; 
+            const parts = rawDate.split('/'); // [Day, Month, Year]
+            
+            if (parts.length === 3) {
+                // parts[2] is YYYY, take last 2 chars -> YY
+                // parts[1] is MM
+                // parts[0] is DD
+                datePart = parts[2].substring(2) + parts[1] + parts[0];
+            }
+        }
+
+        const fileName = `ES-${cleanName}-${suffix}-${datePart}.gpx`;
+
+
+        Android.saveFile(fileName, gpx);
+        lastGeneratedFileName = fileName;
+
+        // FIX: Use short type "ok"
+        setStatus("GPX ready.", "ok");
+        showView("ready");
+
+    } catch (e) {
+        // FIX: Use short type "err"
+        setStatus("Error: " + e.message, "err");
+        showView("idle");
+    }
+}
+
+function transferGPX() {
+    if (!lastGeneratedFileName) return;
+    Android.openLastFile(lastGeneratedFileName);
+    document.getElementById("legend-container").style.display = "none";
+    clearStatus();
+    showView("idle");
+}
+
+function createLegend(Pmin, P0_5, P5_10, P11_20, P21_30, P31_40, P41_80, P81_90, Pmax, fuelName, includeBlack) {
+    const rows = document.getElementById('legend-rows');
+    rows.innerHTML = "";
+
+    const addRow = (low, high, color, textColor, label) => {
+        const div = document.createElement('div');
+        div.className = 'legend-row';
+        div.style.backgroundColor = color;
+        div.style.color = textColor;
+        div.innerHTML = `<span>${low} - ${high}</span> <span>${label}</span>`;
+        rows.appendChild(div);
+    };
+
+    const to3 = (n) => n.toFixed(3);
+    const next = (n) => (n + 0.001).toFixed(3);
+
+    addRow(to3(Pmin), to3(P0_5), "#10c0f0", "black", "light blue");
+    addRow(next(P0_5), to3(P5_10), "#00842b", "white", "dark green");
+    addRow(next(P5_10), to3(P11_20), "#88e030", "black", "bright green");
+    addRow(next(P11_20), to3(P21_30), "#eecc22", "black", "yellow");
+    addRow(next(P21_30), to3(P31_40), "#ff8500", "white", "orange");
+    addRow(next(P31_40), to3(P41_80), "#d00d0d", "white", "red");
+    addRow(next(P41_80), to3(P81_90), "#a71de1", "white", "violet");
+    addRow(next(P81_90), to3(Pmax), "#1010a0", "white", "navy blue");
+
+    if (includeBlack) {
+        const blackDiv = document.createElement('div');
+        blackDiv.className = 'legend-row';
+        blackDiv.style.backgroundColor = "black";
+        blackDiv.style.color = "white";
+        blackDiv.innerHTML = `<span>Absence</span> <span>no ${fuelName}</span>`;
+        rows.appendChild(blackDiv);
+    }
+    document.getElementById("legend-container").style.display = "block";
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 <resources>
     <!-- Base application theme -->
-    <style name="Theme.FuelBase" parent="Theme.AppCompat.Light.NoActionBar" >
+    <style name="Theme.FuelES" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here if needed -->
     </style>
 </resources>

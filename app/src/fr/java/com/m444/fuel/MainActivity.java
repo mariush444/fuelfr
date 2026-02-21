@@ -1,4 +1,4 @@
-package com.m444.fuelFR;
+package com.m444.fuel;
 
 import android.app.Activity;
 import android.content.Context;
@@ -12,7 +12,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
-
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
-        webSettings.setAllowUniversalAccessFromFileURLs(true);
+        // webSettings.setAllowUniversalAccessFromFileURLs(true);
         webSettings.setDomStorageEnabled(true);
 
         webSettings.setSupportZoom(true);
@@ -53,9 +53,8 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new WebAppInterface(this), "Android");
 
         webView.loadUrl("file:///android_asset/index.html");
-    }
 
-    @Override
+/*    @Override
     public void onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack();
@@ -63,7 +62,21 @@ public class MainActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+*/
 
+	getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+		@Override
+		public void handleOnBackPressed() {
+			if (webView.canGoBack()) {
+				webView.goBack();
+			} else {
+				setEnabled(false); // prevent infinite loop
+				getOnBackPressedDispatcher().onBackPressed();
+			}
+		}
+	});
+    }
+    
     public class WebAppInterface {
         Context mContext;
 

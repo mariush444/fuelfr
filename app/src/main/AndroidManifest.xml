@@ -15,7 +15,7 @@
 
     <application
         android:allowBackup="true"
-        android:theme="@style/Theme.FuelFR"
+        android:theme="${appTheme}"
         android:label="@string/app_name"
         android:icon="@mipmap/m444_fuel"
         android:roundIcon="@mipmap/m444_fuel"
