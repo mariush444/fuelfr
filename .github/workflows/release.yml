@@ -24,7 +24,8 @@ jobs:
 
       - name: Create local.properties
         run: |
-          echo "MY_RELEASE_KEYSTORE=app/release.keystore" > local.properties
+          # Use "release.keystore" because Gradle interprets paths relative to the 'app' module
+          echo "MY_RELEASE_KEYSTORE=release.keystore" > local.properties
           echo "MY_KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> local.properties
           echo "MY_KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> local.properties
           echo "MY_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> local.properties
