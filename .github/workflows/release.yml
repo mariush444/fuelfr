@@ -34,7 +34,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleFrRelease assembleEsRelease
+        run: ./gradlew assembleFRRelease assembleESRelease
 
       # NEW STEP: Clean up secrets immediately
       - name: Clean up secrets
@@ -47,7 +47,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            app/build/outputs/apk/fr/release/m444_fuelFr-release.apk
-            app/build/outputs/apk/es/release/m444_fuelEs-release.apk
+            app/build/outputs/apk/fr/release/m444_fuelFR-release.apk
+            app/build/outputs/apk/es/release/m444_fuelES-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
