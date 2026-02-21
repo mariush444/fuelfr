@@ -3,7 +3,7 @@ name: Build & Release APK
 on:
   push:
     tags:
-      - 'v*' # Trigger for version tags like v1.2, v1.3, etc.
+      - 'v*'
 
 jobs:
   build:
@@ -22,19 +22,31 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
+      - name: Create local.properties
+        run: |
+          echo "MY_RELEASE_KEYSTORE=app/release.keystore" > local.properties
+          echo "MY_KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> local.properties
+          echo "MY_KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "MY_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> local.properties
+
       - name: Grant execute permission
         run: chmod +x gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleFrRelease assembleEsRelease
+
+      # NEW STEP: Clean up secrets immediately
+      - name: Clean up secrets
+        if: always() # Run even if previous steps fail, so secrets are still cleaned
+        run: |
+          rm local.properties
+          rm app/release.keystore
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: app/build/outputs/apk/release/m444_fuelFR-release.apk
+          files: |
+            app/build/outputs/apk/fr/release/m444_fuelFr-release.apk
+            app/build/outputs/apk/es/release/m444_fuelEs-release.apk
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
