@@ -47,7 +47,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            app/build/outputs/apk/fr/release/m444_fuelFR-release.apk
-            app/build/outputs/apk/es/release/m444_fuelES-release.apk
+            app/build/outputs/apk/*/release/m444_fuel*-release.apk
+          # app/build/outputs/apk/fr/release/m444_fuelFR-release.apk
+          # app/build/outputs/apk/es/release/m444_fuelES-release.apk
+            
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
