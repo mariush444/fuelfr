@@ -20,8 +20,8 @@
         android:icon="@mipmap/m444_fuel"
         android:roundIcon="@mipmap/m444_fuel"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
         tools:targetApi="34">
+        <!-- removed: android:usesCleartextTraffic="true" -->
 
         <activity
             android:name=".MainActivity"
