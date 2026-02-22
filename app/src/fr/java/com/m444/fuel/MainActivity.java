@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
-import android.util.Xml;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,13 +22,11 @@ import androidx.core.content.FileProvider;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -332,7 +329,7 @@ public class MainActivity extends AppCompatActivity {
         if (xmlFile.exists()) {
             long age = System.currentTimeMillis() - xmlFile.lastModified();
             if (age < sixHours) {
-                return xmlFile; // Use the cached file
+                return xmlFile; 
             }
         }
 
@@ -360,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Unzip: Look for the entry containing 'instantane.xml' inside the zip
+                    // Unzip
                     // The entry name is usually 'PrixCarburants_instantane.xml'
                     try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
                         ZipEntry entry;
@@ -378,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
-                    return xmlFile; // Success!
+                    return xmlFile; 
                 } else {
                     // If server returns 404 or 500, we don't retry
                     throw new IOException("HTTP Error: " + conn.getResponseCode());
@@ -390,24 +387,17 @@ public class MainActivity extends AppCompatActivity {
                 
                 // If it wasn't the last attempt, wait 1 second before retrying
                 if (attempt < maxRetries - 1) {
-                    try {
-                        Thread.sleep(1000); 
-                    } catch (InterruptedException ie) {
+                    try { Thread.sleep(1000); } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         throw new IOException("Download interrupted");
                     }
                 }
             } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
+                if (conn != null) conn.disconnect();
             }
         }
 
-        // If all retries failed, throw the last caught exception
-        if (lastException != null) {
-            throw lastException;
-        }
+        if (lastException != null) throw lastException;
         return null;
     }
 
@@ -439,7 +429,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            if (min == Double.MAX_VALUE) return null; // No prices found
+            if (min == Double.MAX_VALUE) return null; 
 
             double range = max - min;
             lastPmin = min;
@@ -452,7 +442,6 @@ public class MainActivity extends AppCompatActivity {
             lastP41_80 = min + range * 0.80;
             lastP81_90 = min + range * 0.90;
 
-            // Build GPX
             StringBuilder gpx = new StringBuilder();
             gpx.append("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n");
             gpx.append("<gpx version=\"1.1\" creator=\"AI+Mariush444\" xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:osmand=\"https://osmand.net\">\n");
@@ -467,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!DOblack && !hasPrice) continue;
 
                 // Determine Color
-                String color = "000001"; // Default/Absence
+                String color = "000001"; 
                 if (hasPrice) {
                     if (s.price <= lastP0_5) color = "10c0f0";
                     else if (s.price <= lastP5_10) color = "00842b";
@@ -482,7 +471,10 @@ public class MainActivity extends AppCompatActivity {
                 // Name: Fuel Price + Date + Services (Emojis)
                 StringBuilder nameBuilder = new StringBuilder();
                 if (hasPrice) {
-                    String shortDate = s.date.substring(5, 10).replace("-", ""); 
+                    // FIX 2: Correct Date Transform (26.02.12)
+                    // JS: maj.substring(2,10) -> "26-02-12"
+                    // Requirement: "26.02.12"
+                    String shortDate = s.date.substring(2, 10).replace("-", "."); 
                     nameBuilder.append(fuelName).append(" ").append(df3.format(s.price)).append(" ").append(shortDate);
                 } else {
                     nameBuilder.append("no ").append(fuelName);
@@ -496,7 +488,8 @@ public class MainActivity extends AppCompatActivity {
                 // Description: All fuels
                 StringBuilder descBuilder = new StringBuilder();
                 for (PriceInfo p : s.allPrices) {
-                    String pDate = p.maj.substring(5, 10).replace("-", "");
+                    // FIX 2: Apply same date logic to description
+                    String pDate = p.maj.substring(2, 10).replace("-", ".");
                     descBuilder.append(p.nom).append(" ").append(df3.format(p.valeur)).append("€ ").append(pDate).append("<br>");
                 }
 
@@ -514,7 +507,9 @@ public class MainActivity extends AppCompatActivity {
             }
             gpx.append("</gpx>");
 
-            // Filename: FR-Gazole-full-240326.gpx
+            // Filename: FR-Gazole-full-260212.gpx
+            // JS: date.replace(/-/g,'').substring(2)
+            // Java equivalent:
             String datePart = latestDate.substring(2, 4) + latestDate.substring(5, 7) + latestDate.substring(8, 10);
             String suffix = DOblack ? "full" : "only";
             String filename = "FR-" + fuelName + "-" + suffix + "-" + datePart + ".gpx";
@@ -546,12 +541,15 @@ public class MainActivity extends AppCompatActivity {
     // --- XML Parsing Helper ---
     private List<Station> parseXML(File file, int targetFuelId) throws XmlPullParserException, IOException {
         List<Station> stations = new ArrayList<>();
-        FileInputStream fis = new FileInputStream(file);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fis, "ISO-8859-1"));
         
-        XmlPullParser parser = Xml.newPullParser();
+        // FIX 1: Use FileInputStream directly instead of BufferedReader/Reader.
+        // XmlPullParser works best with raw InputStream to handle attributes correctly.
+        // We specify ISO-8859-1 explicitly as per the XML header.
+        FileInputStream fis = new FileInputStream(file);
+        
+        XmlPullParser parser = android.util.Xml.newPullParser();
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-        parser.setInput(reader);
+        parser.setInput(fis, "ISO-8859-1");
 
         Station currentStation = null;
         String currentTag = ""; // FIX 1: Track current tag to handle text content correctly
@@ -560,14 +558,29 @@ public class MainActivity extends AppCompatActivity {
         while (eventType != XmlPullParser.END_DOCUMENT) {
             if (eventType == XmlPullParser.START_TAG) {
                 String name = parser.getName();
-                currentTag = name; // Set current tag
+                currentTag = name; 
 
                 if ("pdv".equals(name)) {
                     currentStation = new Station();
                     String latStr = parser.getAttributeValue(null, "latitude");
                     String lonStr = parser.getAttributeValue(null, "longitude");
-                    if (latStr != null) currentStation.lat = Double.parseDouble(latStr) / 100000.0;
-                    if (lonStr != null) currentStation.lon = Double.parseDouble(lonStr) / 100000.0;
+                    
+                    // Parse Lat/Lon safely
+                    if (latStr != null && !latStr.isEmpty()) {
+                        try {
+                            currentStation.lat = Double.parseDouble(latStr) / 100000.0;
+                        } catch (NumberFormatException e) {
+                            Log.e("FuelAppFR", "Invalid lat: " + latStr);
+                        }
+                    }
+                    if (lonStr != null && !lonStr.isEmpty()) {
+                        try {
+                            currentStation.lon = Double.parseDouble(lonStr) / 100000.0;
+                        } catch (NumberFormatException e) {
+                            Log.e("FuelAppFR", "Invalid lon: " + lonStr);
+                        }
+                    }
+
                 } else if (currentStation != null && "prix".equals(name)) {
                     String id = parser.getAttributeValue(null, "id");
                     String nom = parser.getAttributeValue(null, "nom");
@@ -575,13 +588,17 @@ public class MainActivity extends AppCompatActivity {
                     String maj = parser.getAttributeValue(null, "maj");
 
                     if (id != null && valeur != null) {
-                        int pId = Integer.parseInt(id);
-                        double pVal = Double.parseDouble(valeur);
-                        currentStation.allPrices.add(new PriceInfo(nom, pVal, maj));
+                        try {
+                            int pId = Integer.parseInt(id);
+                            double pVal = Double.parseDouble(valeur);
+                            currentStation.allPrices.add(new PriceInfo(nom, pVal, maj));
 
-                        if (pId == targetFuelId) {
-                            currentStation.price = pVal;
-                            currentStation.date = maj;
+                            if (pId == targetFuelId) {
+                                currentStation.price = pVal;
+                                currentStation.date = maj;
+                            }
+                        } catch (NumberFormatException e) {
+                            Log.e("FuelAppFR", "Error parsing price attributes");
                         }
                     }
                 }
@@ -598,7 +615,7 @@ public class MainActivity extends AppCompatActivity {
                     stations.add(currentStation);
                     currentStation = null;
                 }
-                currentTag = ""; // Reset tag
+                currentTag = ""; 
             }
             eventType = parser.next();
         }
