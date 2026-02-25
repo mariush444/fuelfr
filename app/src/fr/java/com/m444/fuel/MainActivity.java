@@ -21,7 +21,7 @@ import androidx.core.content.FileProvider;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
-
+import java.text.DecimalFormatSymbols;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
@@ -33,6 +33,10 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -64,8 +68,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int COLOR_STATUS_PROC = Color.parseColor("#fff3cd");
     private static final int COLOR_TEXT_PROC = Color.parseColor("#856404");
 
-    // French Fuel Map
-    private final Map<Integer, String> fuelMap = new HashMap<Integer, String>() {{
+    // French Fuel Map  //HashMap
+    private final Map<Integer, String> fuelMap = new LinkedHashMap<Integer, String>() {{
         put(1, "Gazole");
         put(5, "E10");
         put(2, "SP95");
@@ -74,12 +78,13 @@ public class MainActivity extends AppCompatActivity {
         put(4, "GPLc");
     }};
 
-    // Service Emojis Map
-    private final Map<String, String> serviceEmojis = new HashMap<String, String>() {{
+    // Service Emojis Map // HashMap
+    private final Map<String, String> serviceEmojis = new LinkedHashMap<String, String>() {{
         put("Bar", "🍴");
         put("Restauration sur place", "🍴");
         put("Boutique alimentaire", "🛒");
         put("DAB (Distributeur automatique de billets)", "🏧");
+        put("Automate CB 24/24", "🏧");
         put("Douches", "🚿");
         put("Espace bébé", "🚼");
         put("Relais colis", "🎁");
@@ -321,7 +326,7 @@ public class MainActivity extends AppCompatActivity {
         if (!dir.exists()) dir.mkdirs();
 
         // We will always save/use this specific filename
-        File xmlFile = new File(dir, "instantane.xml");
+        File xmlFile = new File(dir, "PrixCarburants_instantane.xml");
         File zipFile = new File(dir, "instantane.zip");
 
         // Check cache (6 hours)
@@ -362,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
                     try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
                         ZipEntry entry;
                         while ((entry = zis.getNextEntry()) != null) {
-                            if (entry.getName().contains("instantane.xml")) {
+                            if (entry.getName().contains("PrixCarburants_instantane.xml")) {
                                 // Extract and save it as 'instantane.xml'
                                 try (FileOutputStream fos = new FileOutputStream(xmlFile)) {
                                     byte[] buffer = new byte[4096];
@@ -403,7 +408,10 @@ public class MainActivity extends AppCompatActivity {
 
     private File processXmlAndSave(File xmlFile) {
         try {
-            String selected = (String) fuelSpinner.getSelectedItem();
+            // String selected = (String) fuelSpinner.getSelectedItem();
+			Object selectedObj = fuelSpinner.getSelectedItem();
+				if (selectedObj == null) return null;
+					String selected = selectedObj.toString();
             int fuelId = Integer.parseInt(selected.split(":")[0]);
             String fuelName = fuelMap.get(fuelId);
             boolean DOblack = doBlackCheckbox.isChecked();
@@ -419,6 +427,7 @@ public class MainActivity extends AppCompatActivity {
             // Calculate Ranges
             double min = Double.MAX_VALUE;
             double max = Double.MIN_VALUE;
+            // double max = Double.MAX_VALUE;;
             String latestDate = "00000000";
 
             for (Station s : stations) {
@@ -449,6 +458,7 @@ public class MainActivity extends AppCompatActivity {
 
             DecimalFormat df3 = new DecimalFormat("0.000");
             DecimalFormat df5 = new DecimalFormat("0.00000");
+			// DecimalFormat df5 = new DecimalFormat("0.00000", DecimalFormatSymbols.getInstance(Locale.US));
 
             for (Station s : stations) {
                 // Check if we should include this station
@@ -493,7 +503,8 @@ public class MainActivity extends AppCompatActivity {
                     descBuilder.append(p.nom).append(" ").append(df3.format(p.valeur)).append("€ ").append(pDate).append("<br>");
                 }
 
-                gpx.append("<wpt lat=\"").append(df5.format(s.lat)).append("\" lon=\"").append(df5.format(s.lon)).append("\">");
+                // gpx.append("<wpt lat=\"").append(df5.format(s.lat)).append("\" lon=\"").append(df5.format(s.lon)).append("\">");
+                gpx.append("<wpt lat=\"").append(String.format(Locale.US, "%.5f", s.lat)).append("\" lon=\"").append(String.format(Locale.US, "%.5f", s.lon)).append("\">");
                 gpx.append("<name>").append(escapeXml(nameBuilder.toString())).append("</name>");
                 gpx.append("<desc><![CDATA[").append(descBuilder.toString()).append("]]></desc>");
                 
@@ -628,7 +639,8 @@ public class MainActivity extends AppCompatActivity {
         double lon = 0;
         double price = 0; 
         String date = ""; 
-        List<String> services = new ArrayList<>();
+        // List<String> services = new ArrayList<>();
+        Set<String> services = new LinkedHashSet<>();
         List<PriceInfo> allPrices = new ArrayList<>();
     }
 

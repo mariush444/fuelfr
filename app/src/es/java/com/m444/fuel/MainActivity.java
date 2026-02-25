@@ -34,6 +34,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
@@ -63,8 +64,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int COLOR_STATUS_PROC = Color.parseColor("#fff3cd");
     private static final int COLOR_TEXT_PROC = Color.parseColor("#856404");
 
-    // Fuel Map
-    private final Map<Integer, String> fuelMap = new HashMap<Integer, String>() {{
+    // Fuel Map //HashMap
+    private final Map<Integer, String> fuelMap = new LinkedHashMap<Integer, String>() {{
         put(1, "Adblue");
         put(2, "Biodiesel");
         put(3, "Bioetanol");
@@ -424,7 +425,10 @@ public class MainActivity extends AppCompatActivity {
             JSONArray stations = root.getJSONArray("ListaEESSPrecio");
             String dataDate = root.optString("Fecha", "");
 
-            String selected = (String) fuelSpinner.getSelectedItem();
+            // String selected = (String) fuelSpinner.getSelectedItem();
+			Object selectedObj = fuelSpinner.getSelectedItem();
+				if (selectedObj == null) return null;
+					String selected = selectedObj.toString();
             int fuelId = Integer.parseInt(selected.split(":")[0]);
             String fuelName = fuelMap.get(fuelId);
             String targetKey = "Precio " + fuelName;
